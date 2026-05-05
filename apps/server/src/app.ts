@@ -9,6 +9,7 @@ import {
 } from "./services/inventory.js";
 import { formatDropWithPurchasers } from "./format.js";
 import { notifyDropsChanged } from "./socketHub.js";
+import { getExpirySweepStats } from "./services/expirySweep.js";
 
 const uuid = z.string().uuid();
 
@@ -26,6 +27,10 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get("/api/system/expiry-sweep", (_req, res) => {
+    res.json(getExpirySweepStats());
   });
 
   app.get("/api/users", async (_req, res, next) => {

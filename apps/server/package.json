@@ -7,7 +7,8 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "reservation:concurrency-check": "tsx scripts/reservation-concurrency-check.ts"
+    "reservation:concurrency-check": "tsx scripts/reservation-concurrency-check.ts",
+    "reservation:expiry-check": "tsx scripts/reservation-expiry-check.ts"
   },
   "dependencies": {
     "@inventory/types": "workspace:*",

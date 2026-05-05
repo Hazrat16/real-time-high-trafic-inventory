@@ -1,14 +1,19 @@
 import express from "express";
 import cors from "cors";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { prisma } from "./prisma.js";
 import {
   InventoryError,
   reserveItem,
   completePurchase,
 } from "./services/inventory.js";
-import { buildRecentPurchasersByDrop, formatDropWithPurchasers, toDropResponse } from "./format.js";
+import {
+  buildRecentPurchasersByDrop,
+  formatDropWithPurchasers,
+  toDropResponse,
+  type DropRecord,
+} from "./format.js";
 import { notifyDropsChanged } from "./socketHub.js";
 import { getExpirySweepStats } from "./services/expirySweep.js";
 
@@ -50,7 +55,7 @@ export function createApp() {
   app.get(`${API_PREFIX}/drops`, async (_req, res, next) => {
     try {
       const now = new Date();
-      const drops = await prisma.drop.findMany({
+      const drops: DropRecord[] = await prisma.drop.findMany({
         where: {
           startsAt: { lte: now },
           OR: [{ endsAt: null }, { endsAt: { gte: now } }],
@@ -58,8 +63,8 @@ export function createApp() {
         orderBy: { startsAt: "desc" },
       });
 
-      const byDrop = await buildRecentPurchasersByDrop(drops.map((d) => d.id));
-      const payload = drops.map((drop) =>
+      const byDrop = await buildRecentPurchasersByDrop(drops.map((d: DropRecord) => d.id));
+      const payload = drops.map((drop: DropRecord) =>
         toDropResponse(drop, byDrop.get(drop.id) ?? []),
       );
       res.json(payload);
@@ -206,7 +211,7 @@ export function createApp() {
         res.status(e.status).json({ error: e.message, code: e.code });
         return;
       }
-      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e instanceof PrismaClientKnownRequestError) {
         res.status(400).json({ error: "Invalid reservation request" });
         return;
       }
@@ -232,7 +237,7 @@ export function createApp() {
         res.status(e.status).json({ error: e.message, code: e.code });
         return;
       }
-      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e instanceof PrismaClientKnownRequestError) {
         res.status(400).json({ error: "Invalid purchase request" });
         return;
       }

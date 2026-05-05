@@ -1,9 +1,19 @@
-import type { Drop } from "@prisma/client";
 import type { DropResponse, RecentPurchaser } from "@inventory/types";
 import { prisma } from "./prisma.js";
 
+export type DropRecord = {
+  id: string;
+  name: string;
+  price: { toString(): string };
+  totalUnits: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  startsAt: Date;
+  endsAt: Date | null;
+};
+
 export function toDropResponse(
-  drop: Drop,
+  drop: DropRecord,
   recentPurchasers: RecentPurchaser[],
 ): DropResponse {
   return {
@@ -28,7 +38,7 @@ export async function loadRecentPurchasers(
     take: 3,
     include: { user: { select: { username: true } } },
   });
-  return rows.map((p) => ({
+  return rows.map((p: { user: { username: string }; createdAt: Date }) => ({
     username: p.user.username,
     purchasedAt: p.createdAt.toISOString(),
   }));
@@ -61,7 +71,7 @@ export async function buildRecentPurchasersByDrop(
 }
 
 export async function formatDropWithPurchasers(
-  drop: Drop,
+  drop: DropRecord,
 ): Promise<DropResponse> {
   const recentPurchasers = await loadRecentPurchasers(drop.id);
   return toDropResponse(drop, recentPurchasers);

@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReservationStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  username     String        @unique
+  createdAt    DateTime      @default(now())
+  reservations Reservation[]
+  purchases    Purchase[]
+}
+
+model Drop {
+  id                  String        @id @default(uuid())
+  name                String
+  price               Decimal       @db.Decimal(12, 2)
+  totalUnits          Int
+  /// Units shoppers can still reserve (not on hold, not sold)
+  availableQuantity   Int
+  /// Units currently held by ACTIVE reservations
+  reservedQuantity    Int
+  startsAt            DateTime
+  endsAt              DateTime?
+  createdAt           DateTime      @default(now())
+  reservations        Reservation[]
+  purchases           Purchase[]
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  dropId    String
+  userId    String
+  expiresAt DateTime
+  status    ReservationStatus @default(ACTIVE)
+  drop      Drop              @relation(fields: [dropId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+  purchase  Purchase?
+
+  @@index([status, expiresAt])
+  @@index([dropId, userId])
+}
+
+model Purchase {
+  id            String   @id @default(uuid())
+  dropId        String
+  userId        String
+  reservationId String   @unique
+  createdAt     DateTime @default(now())
+  drop          Drop     @relation(fields: [dropId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+
+  @@index([dropId, createdAt(sort: Desc)])
+}

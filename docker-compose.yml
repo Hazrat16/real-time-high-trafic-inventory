@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+      POSTGRES_DB: inventory
+    ports:
+      - "5433:5432"
+    volumes:
+      - inventory_pg:/var/lib/postgresql/data
+
+volumes:
+  inventory_pg:

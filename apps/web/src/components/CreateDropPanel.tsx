@@ -1,0 +1,103 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { createDrop } from "../api.ts";
+
+export function CreateDropPanel() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("220");
+  const [units, setUnits] = useState(25);
+  const mut = useMutation({
+    mutationFn: () =>
+      createDrop({
+        name,
+        price,
+        totalUnits: units,
+        startsAt: new Date(Date.now() - 1000).toISOString(),
+      }),
+    onSuccess: () => {
+      toast.success("Drop created");
+      setName("");
+      void qc.invalidateQueries({ queryKey: ["drops"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-sm text-slate-400 underline decoration-slate-600 hover:text-slate-200"
+      >
+        Initialize new drop (API demo)
+      </button>
+    );
+  }
+
+  return (
+    <form
+      className="mt-6 space-y-3 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        mut.mutate();
+      }}
+    >
+      <p className="text-sm font-medium text-slate-300">POST /api/drops</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-xs text-slate-500">
+          Name
+          <input
+            required
+            className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label className="text-xs text-slate-500">
+          Price (USD)
+          <input
+            required
+            className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+        </label>
+        <label className="text-xs text-slate-500">
+          Units
+          <input
+            required
+            type="number"
+            min={1}
+            className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            value={units}
+            onChange={(e) => setUnits(Number(e.target.value))}
+          />
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={mut.isPending}
+          className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm text-white hover:bg-violet-500 disabled:opacity-60"
+        >
+          {mut.isPending ? "Creating…" : "Create drop"}
+        </button>
+        <button
+          type="button"
+          className="text-sm text-slate-500 hover:text-slate-300"
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </button>
+      </div>
+      <p className="text-xs text-slate-600">
+        Starts immediately (startsAt = now − 1s). Stock initialized to total
+        units.
+      </p>
+    </form>
+  );
+}

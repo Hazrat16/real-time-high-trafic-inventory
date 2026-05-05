@@ -1,4 +1,3 @@
--- Phase 1 hardening:
 -- 1) Reservation createdAt audit column
 -- 2) Additional indexes for expiry/user/drop lookups
 -- 3) Partial unique index: one ACTIVE reservation per (dropId, userId)

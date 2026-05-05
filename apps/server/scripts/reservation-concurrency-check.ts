@@ -8,8 +8,8 @@ async function main() {
   const now = Date.now();
 
   const users = Array.from({ length: attempts }, (_, i) => ({
-    id: `phase2-${now}-${i}@demo.local`,
-    username: `phase2_user_${now}_${i}`,
+    id: `reservation-check-${now}-${i}@demo.local`,
+    username: `reservation_check_user_${now}_${i}`,
   }));
 
   await prisma.user.createMany({
@@ -19,7 +19,7 @@ async function main() {
 
   const drop = await prisma.drop.create({
     data: {
-      name: `Phase2 Concurrency Probe ${now}`,
+      name: `Reservation Concurrency Probe ${now}`,
       price: "1.00",
       totalUnits: 1,
       availableQuantity: 1,

@@ -66,6 +66,7 @@ The Vite `EPIPE` / websocket proxy errors are a side effect of the API failing t
 - Each reservation stores `expiresAt` (`now + 60s`).
 - A **periodic sweep** (every 5 seconds) loads expired `ACTIVE` reservations, locks the parent **Drop** row (`SELECT … FOR UPDATE`), verifies status is still `ACTIVE`, marks `EXPIRED`, and moves one unit from `reservedQuantity` back to `availableQuantity`.
 - After any inventory mutation (reserve, purchase, expiry), the server emits `drops:changed` over Socket.io so browsers refetch `/api/drops`.
+- You can inspect sweep runtime stats at `GET /api/system/expiry-sweep` (`runs`, `lastRecovered`, `totalRecovered`, `lastRunAt`, `lastError`).
 
 ## Concurrency — preventing overselling on reserve
 
@@ -98,3 +99,4 @@ Socket.io needs a **long-lived** HTTP server. **Vercel serverless alone is not s
 | `pnpm db:migrate` | Prisma migrate dev (from `@inventory/server`) |
 | `pnpm db:seed` | Seed demo users + sample drop |
 | `pnpm reservation:check` | Runs 100 parallel reservations against a 1-unit drop; expects exactly 1 success |
+| `pnpm reservation:expiry-check` | Forces one reservation stale and verifies stock is recovered + status becomes `EXPIRED` |

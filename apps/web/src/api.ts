@@ -5,11 +5,14 @@ import type {
 } from "@inventory/types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
-const usersApiRoute = "/api/v1/users";
-const dropsApiRoute = "/api/v1/drops";
-const activeReservationApiRoute = "/api/v1/reservations/active";
-const reservationsApiRoute = "/api/v1/reservations";
-const purchasesApiRoute = "/api/v1/purchases";
+const backendOrigin =
+  (import.meta.env.VITE_API_ORIGIN as string | undefined)?.trim() || "";
+const apiBase = `${backendOrigin}/api/v1`;
+const usersApiRoute = `${apiBase}/users`;
+const dropsApiRoute = `${apiBase}/drops`;
+const activeReservationApiRoute = `${apiBase}/reservations/active`;
+const reservationsApiRoute = `${apiBase}/reservations`;
+const purchasesApiRoute = `${apiBase}/purchases`;
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {

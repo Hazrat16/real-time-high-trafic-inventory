@@ -19,6 +19,10 @@ Full **pnpm monorepo**: `apps/server` (Express + Prisma + Socket.io), `apps/web`
 2. **Environment**
 
    Copy `apps/server/.env.example` to `apps/server/.env`. The bundled Compose file maps Postgres to host port **5433** (to avoid clashes with a local `:5432`).
+   
+   For web, set `apps/web/.env.development` with:
+   - `VITE_API_ORIGIN=http://localhost:5000` (local)
+   - or your deployed backend URL in production.
 
 3. **Install dependencies**
 
@@ -43,6 +47,8 @@ Full **pnpm monorepo**: `apps/server` (Express + Prisma + Socket.io), `apps/web`
    Optional: copy `apps/web/.env.example` to `apps/web/.env.development` if you change the API port (see troubleshooting below).
 
 Open [http://localhost:5173](http://localhost:5173). Pick a demo user (**alice**, **bob**, or **carol**); the UI sends `X-User-Id` on reserve/purchase requests.
+
+If you deploy only frontend on Vercel, set `VITE_API_ORIGIN` in Vercel project settings to your backend domain. Otherwise calls to `/api/v1/*` on the frontend domain return 404.
 
 ### Port `5000` already in use (`EADDRINUSE`)
 

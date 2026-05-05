@@ -45,7 +45,8 @@ export function DropCard({
 }) {
   const qc = useQueryClient();
 
-  const { data: active } = useActiveReservationQuery(userId, drop.id);
+  const activeReservationQ = useActiveReservationQuery(userId, drop.id);
+  const active = activeReservationQ.data;
 
   const reserveMut = useReserveMutation(userId, drop.id, {
     onSuccess: () => {
@@ -77,6 +78,8 @@ export function DropCard({
 
   const canInteract = Boolean(userId);
   const holding = active?.status === "ACTIVE";
+  const resolvingReservationState =
+    canInteract && (activeReservationQ.isLoading || activeReservationQ.isFetching);
   const isLowStock =
     !isSoldOut && !isOutOfStock && drop.availableQuantity > 0 && drop.availableQuantity <= 3;
   const stockToneClass =
@@ -164,6 +167,17 @@ export function DropCard({
           <p className="text-sm text-amber-400/90">
             Pick a demo user to reserve or buy.
           </p>
+        ) : resolvingReservationState ? (
+          <div className="flex w-full items-center justify-between">
+            <p className="text-sm text-slate-400">Checking reservation status…</p>
+            <button
+              type="button"
+              disabled
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 opacity-80"
+            >
+              Loading…
+            </button>
+          </div>
         ) : holding ? (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full">
             <Countdown expiresAt={active!.expiresAt} />

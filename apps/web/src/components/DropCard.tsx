@@ -1,12 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { DropResponse } from "@inventory/types";
 import {
-  completePurchase,
-  getActiveReservation,
-  reserve,
-} from "../api.ts";
+  invalidateInventoryQueries,
+  useActiveReservationQuery,
+  usePurchaseMutation,
+  useReserveMutation,
+} from "../inventory.queries.ts";
 
 function formatMoney(price: string) {
   return new Intl.NumberFormat(undefined, {
@@ -44,31 +45,22 @@ export function DropCard({
 }) {
   const qc = useQueryClient();
 
-  const { data: active } = useQuery({
-    queryKey: ["activeRes", drop.id, userId],
-    queryFn: () => getActiveReservation(userId!, drop.id),
-    enabled: Boolean(userId),
-    refetchInterval: 2000,
-  });
+  const { data: active } = useActiveReservationQuery(userId, drop.id);
 
-  const reserveMut = useMutation({
-    mutationFn: () => reserve(userId!, drop.id),
+  const reserveMut = useReserveMutation(userId, drop.id, {
     onSuccess: () => {
       toast.success("Reserved — complete checkout within 60s");
-      void qc.invalidateQueries({ queryKey: ["drops"] });
-      void qc.invalidateQueries({ queryKey: ["activeRes", drop.id] });
+      invalidateInventoryQueries(qc);
     },
     onError: (e: Error & { code?: string; status?: number }) => {
       toast.error(e.message ?? "Could not reserve");
     },
   });
 
-  const purchaseMut = useMutation({
-    mutationFn: () => completePurchase(userId!, active!.id),
+  const purchaseMut = usePurchaseMutation(userId, {
     onSuccess: () => {
       toast.success("Purchase complete");
-      void qc.invalidateQueries({ queryKey: ["drops"] });
-      void qc.invalidateQueries({ queryKey: ["activeRes", drop.id] });
+      invalidateInventoryQueries(qc);
     },
     onError: (e: Error & { code?: string; status?: number }) => {
       toast.error(e.message ?? "Purchase failed");
@@ -80,14 +72,19 @@ export function DropCard({
       drop.totalUnits - drop.availableQuantity - drop.reservedQuantity,
     [drop],
   );
+  const isSoldOut = soldApprox >= drop.totalUnits;
+  const isOutOfStock = !isSoldOut && drop.availableQuantity < 1;
 
   const canInteract = Boolean(userId);
   const holding = active?.status === "ACTIVE";
-  const isLowStock = drop.availableQuantity > 0 && drop.availableQuantity <= 3;
+  const isLowStock =
+    !isSoldOut && !isOutOfStock && drop.availableQuantity > 0 && drop.availableQuantity <= 3;
   const stockToneClass =
-    drop.availableQuantity < 1
+    isSoldOut
       ? "text-rose-400"
-      : isLowStock
+      : isOutOfStock
+        ? "text-orange-300"
+        : isLowStock
         ? "text-amber-300"
         : "text-emerald-300";
 
@@ -117,9 +114,13 @@ export function DropCard({
       </header>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        {drop.availableQuantity < 1 ? (
+        {isSoldOut ? (
           <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 font-medium text-rose-300">
             Sold out
+          </span>
+        ) : isOutOfStock ? (
+          <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 font-medium text-orange-300">
+            Out of stock
           </span>
         ) : isLowStock ? (
           <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-medium text-amber-300">
@@ -169,7 +170,7 @@ export function DropCard({
             <button
               type="button"
               disabled={purchaseMut.isPending}
-              onClick={() => purchaseMut.mutate()}
+              onClick={() => purchaseMut.mutate(active!.id)}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {purchaseMut.isPending ? "Processing…" : "Complete purchase"}
@@ -184,8 +185,10 @@ export function DropCard({
           >
             {reserveMut.isPending
               ? "Reserving…"
-              : drop.availableQuantity < 1
+              : isSoldOut
                 ? "Sold out"
+                : isOutOfStock
+                  ? "Out of stock"
                 : "Reserve"}
           </button>
         )}

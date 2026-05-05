@@ -1,26 +1,21 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createDrop } from "../api.ts";
+import {
+  invalidateInventoryQueries,
+  queryClient,
+  useCreateDropMutation,
+} from "../inventory.queries.ts";
 
 export function CreateDropPanel() {
-  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("220");
   const [units, setUnits] = useState(25);
-  const mut = useMutation({
-    mutationFn: () =>
-      createDrop({
-        name,
-        price,
-        totalUnits: units,
-        startsAt: new Date(Date.now() - 1000).toISOString(),
-      }),
+  const mut = useCreateDropMutation({
     onSuccess: () => {
       toast.success("Drop created");
       setName("");
-      void qc.invalidateQueries({ queryKey: ["drops"] });
+      invalidateInventoryQueries(queryClient);
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -43,7 +38,12 @@ export function CreateDropPanel() {
       className="space-y-3 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4"
       onSubmit={(e) => {
         e.preventDefault();
-        mut.mutate();
+        mut.mutate({
+          name,
+          price,
+          totalUnits: units,
+          startsAt: new Date(Date.now() - 1000).toISOString(),
+        });
       }}
     >
       <p className="text-sm font-medium text-slate-300">POST /api/drops</p>

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import {
   InventoryError,
@@ -12,6 +13,7 @@ import { notifyDropsChanged } from "./socketHub.js";
 import { getExpirySweepStats } from "./services/expirySweep.js";
 
 const uuid = z.string().uuid();
+const API_PREFIX = "/api/v1";
 
 export function createApp() {
   const app = express();
@@ -29,11 +31,11 @@ export function createApp() {
     res.json({ ok: true });
   });
 
-  app.get("/api/system/expiry-sweep", (_req, res) => {
+  app.get(`${API_PREFIX}/system/expiry-sweep`, (_req, res) => {
     res.json(getExpirySweepStats());
   });
 
-  app.get("/api/users", async (_req, res, next) => {
+  app.get(`${API_PREFIX}/users`, async (_req, res, next) => {
     try {
       const users = await prisma.user.findMany({
         orderBy: { username: "asc" },
@@ -45,7 +47,7 @@ export function createApp() {
     }
   });
 
-  app.get("/api/drops", async (_req, res, next) => {
+  app.get(`${API_PREFIX}/drops`, async (_req, res, next) => {
     try {
       const now = new Date();
       const drops = await prisma.drop.findMany({
@@ -66,15 +68,28 @@ export function createApp() {
     }
   });
 
-  const createDropSchema = z.object({
-    name: z.string().min(1),
-    price: z.union([z.number().positive(), z.string().regex(/^\d+(\.\d{1,2})?$/)]),
-    totalUnits: z.number().int().positive(),
-    startsAt: z.string().datetime(),
-    endsAt: z.string().datetime().optional().nullable(),
-  });
+  const createDropSchema = z
+    .object({
+      name: z.string().min(1),
+      price: z.union([
+        z.number().positive(),
+        z.string().regex(/^\d+(\.\d{1,2})?$/),
+      ]),
+      totalUnits: z.number().int().positive(),
+      startsAt: z.string().datetime(),
+      endsAt: z.string().datetime().optional().nullable(),
+    })
+    .superRefine((body, ctx) => {
+      if (body.endsAt && new Date(body.endsAt) <= new Date(body.startsAt)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["endsAt"],
+          message: "endsAt must be greater than startsAt",
+        });
+      }
+    });
 
-  app.post("/api/drops", async (req, res, next) => {
+  app.post(`${API_PREFIX}/drops`, async (req, res, next) => {
     try {
       const body = createDropSchema.parse(req.body);
       const startsAt = new Date(body.startsAt);
@@ -109,7 +124,7 @@ export function createApp() {
     }
   });
 
-  function requireUser(
+  async function requireUser(
     req: express.Request,
     res: express.Response,
     next: express.NextFunction,
@@ -121,12 +136,22 @@ export function createApp() {
       });
       return;
     }
-    req.userId = parsed.data;
+    const user = await prisma.user.findUnique({
+      where: { id: parsed.data },
+      select: { id: true },
+    });
+    if (!user) {
+      res.status(401).json({
+        error: "Unknown demo user. Select an existing user from the dashboard.",
+      });
+      return;
+    }
+    req.userId = user.id;
     next();
   }
 
   app.get(
-    "/api/reservations/active",
+    `${API_PREFIX}/reservations/active`,
     requireUser,
     async (req, res, next) => {
       try {
@@ -162,7 +187,7 @@ export function createApp() {
     dropId: z.string().uuid(),
   });
 
-  app.post("/api/reservations", requireUser, async (req, res, next) => {
+  app.post(`${API_PREFIX}/reservations`, requireUser, async (req, res, next) => {
     try {
       const { dropId } = reserveSchema.parse(req.body);
       const row = await reserveItem(dropId, req.userId!);
@@ -181,6 +206,10 @@ export function createApp() {
         res.status(e.status).json({ error: e.message, code: e.code });
         return;
       }
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        res.status(400).json({ error: "Invalid reservation request" });
+        return;
+      }
       next(e);
     }
   });
@@ -189,7 +218,7 @@ export function createApp() {
     reservationId: z.string().uuid(),
   });
 
-  app.post("/api/purchases", requireUser, async (req, res, next) => {
+  app.post(`${API_PREFIX}/purchases`, requireUser, async (req, res, next) => {
     try {
       const { reservationId } = purchaseSchema.parse(req.body);
       await completePurchase(reservationId, req.userId!);
@@ -201,6 +230,10 @@ export function createApp() {
       }
       if (e instanceof InventoryError) {
         res.status(e.status).json({ error: e.message, code: e.code });
+        return;
+      }
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        res.status(400).json({ error: "Invalid purchase request" });
         return;
       }
       next(e);

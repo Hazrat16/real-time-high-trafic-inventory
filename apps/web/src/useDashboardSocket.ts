@@ -1,26 +1,27 @@
-import { useEffect } from "react";
-import type { QueryClient } from "@tanstack/react-query";
-import { io, type Socket } from "socket.io-client";
 import { SOCKET_SERVER_EVENTS } from "@inventory/types";
+import type { QueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { io, type Socket } from "socket.io-client";
+import { invalidateInventoryQueries } from "./inventory.queries.ts";
 
 export function useDashboardSocket(queryClient: QueryClient) {
   useEffect(() => {
+    const defaultOrigin = import.meta.env.DEV
+      ? "http://localhost:5000"
+      : window.location.origin;
     const backendOrigin =
       (import.meta.env.VITE_API_ORIGIN as string | undefined)?.trim() ||
-      window.location.origin;
+      defaultOrigin;
 
     const directSocket: Socket = io(backendOrigin, {
       path: "/socket.io",
-      // Connect directly to backend to avoid Vite ws proxy churn.
-      // API calls still use /api proxy in dev.
       transports: ["websocket"],
       withCredentials: false,
       upgrade: false,
     });
 
     const invalidate = () => {
-      void queryClient.invalidateQueries({ queryKey: ["drops"] });
-      void queryClient.invalidateQueries({ queryKey: ["activeRes"] });
+      invalidateInventoryQueries(queryClient);
     };
 
     directSocket.on(SOCKET_SERVER_EVENTS.DROPS_CHANGED, invalidate);

@@ -65,8 +65,8 @@ The Vite `EPIPE` / websocket proxy errors are a side effect of the API failing t
 
 - Each reservation stores `expiresAt` (`now + 60s`).
 - A **periodic sweep** (every 5 seconds) loads expired `ACTIVE` reservations, locks the parent **Drop** row (`SELECT … FOR UPDATE`), verifies status is still `ACTIVE`, marks `EXPIRED`, and moves one unit from `reservedQuantity` back to `availableQuantity`.
-- After any inventory mutation (reserve, purchase, expiry), the server emits `drops:changed` over Socket.io so browsers refetch `/api/drops`.
-- You can inspect sweep runtime stats at `GET /api/system/expiry-sweep` (`runs`, `lastRecovered`, `totalRecovered`, `lastRunAt`, `lastError`).
+- After any inventory mutation (reserve, purchase, expiry), the server emits `drops:changed` over Socket.io so browsers refetch `/api/v1/drops`.
+- You can inspect sweep runtime stats at `GET /api/v1/system/expiry-sweep` (`runs`, `lastRecovered`, `totalRecovered`, `lastRunAt`, `lastError`).
 
 ## Concurrency — preventing overselling on reserve
 
@@ -80,12 +80,12 @@ Purchases lock the **same drop row** after validating ownership so expiry and ch
 
 | Method | Path | Notes |
 |--------|------|--------|
-| `GET` | `/api/users` | Demo shoppers |
-| `GET` | `/api/drops` | Active drops + nested **top 3** recent purchasers |
-| `POST` | `/api/drops` | Initialize a drop (`name`, `price`, `totalUnits`, `startsAt`, optional `endsAt`) |
-| `POST` | `/api/reservations` | Requires `X-User-Id`; body `{ dropId }` |
-| `GET` | `/api/reservations/active?dropId=` | Current hold for user |
-| `POST` | `/api/purchases` | Requires `X-User-Id`; body `{ reservationId }` |
+| `GET` | `/api/v1/users` | Demo shoppers |
+| `GET` | `/api/v1/drops` | Active drops + nested **top 3** recent purchasers |
+| `POST` | `/api/v1/drops` | Initialize a drop (`name`, `price`, `totalUnits`, `startsAt`, optional `endsAt`) |
+| `POST` | `/api/v1/reservations` | Requires `X-User-Id`; body `{ dropId }` |
+| `GET` | `/api/v1/reservations/active?dropId=` | Current hold for user |
+| `POST` | `/api/v1/purchases` | Requires `X-User-Id`; body `{ reservationId }` |
 
 ## Deployment note
 

@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
 import { DropCard } from "./components/DropCard.tsx";
@@ -8,20 +8,14 @@ import {
   loadStoredUserId,
   storeUserId,
 } from "./components/UserPicker.tsx";
-import { getDrops, getUsers } from "./api.ts";
 import { useDashboardSocket } from "./useDashboardSocket.ts";
-
-const qc = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 15_000 },
-  },
-});
+import { queryClient, useDropsQuery, useUsersQuery } from "./inventory.queries.ts";
 
 function Dashboard() {
-  useDashboardSocket(qc);
+  useDashboardSocket(queryClient);
 
-  const usersQ = useQuery({ queryKey: ["users"], queryFn: getUsers });
-  const dropsQ = useQuery({ queryKey: ["drops"], queryFn: getDrops });
+  const usersQ = useUsersQuery();
+  const dropsQ = useDropsQuery();
 
   const [userId, setUserId] = useState<string | null>(loadStoredUserId);
 
@@ -98,7 +92,7 @@ function Dashboard() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={qc}>
+    <QueryClientProvider client={queryClient}>
       <Dashboard />
     </QueryClientProvider>
   );

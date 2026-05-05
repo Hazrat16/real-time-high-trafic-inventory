@@ -5,6 +5,11 @@ import type {
 } from "@inventory/types";
 
 const jsonHeaders = { "Content-Type": "application/json" };
+const usersApiRoute = "/api/v1/users";
+const dropsApiRoute = "/api/v1/drops";
+const activeReservationApiRoute = "/api/v1/reservations/active";
+const reservationsApiRoute = "/api/v1/reservations";
+const purchasesApiRoute = "/api/v1/purchases";
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -26,18 +31,18 @@ async function handle<T>(res: Response): Promise<T> {
 }
 
 export function getUsers(): Promise<UserResponse[]> {
-  return fetch("/api/users").then((r) => handle<UserResponse[]>(r));
+  return fetch(usersApiRoute).then((r) => handle<UserResponse[]>(r));
 }
 
 export function getDrops(): Promise<DropResponse[]> {
-  return fetch("/api/drops").then((r) => handle<DropResponse[]>(r));
+  return fetch(dropsApiRoute).then((r) => handle<DropResponse[]>(r));
 }
 
 export function getActiveReservation(
   userId: string,
   dropId: string,
 ): Promise<ReservationResponse | null> {
-  return fetch(`/api/reservations/active?dropId=${encodeURIComponent(dropId)}`, {
+  return fetch(`${activeReservationApiRoute}?dropId=${encodeURIComponent(dropId)}`, {
     headers: { "X-User-Id": userId },
   }).then((r) => handle<ReservationResponse | null>(r));
 }
@@ -46,7 +51,7 @@ export function reserve(
   userId: string,
   dropId: string,
 ): Promise<ReservationResponse> {
-  return fetch("/api/reservations", {
+  return fetch(reservationsApiRoute, {
     method: "POST",
     headers: { ...jsonHeaders, "X-User-Id": userId },
     body: JSON.stringify({ dropId }),
@@ -57,7 +62,7 @@ export function completePurchase(
   userId: string,
   reservationId: string,
 ): Promise<void> {
-  return fetch("/api/purchases", {
+  return fetch(purchasesApiRoute, {
     method: "POST",
     headers: { ...jsonHeaders, "X-User-Id": userId },
     body: JSON.stringify({ reservationId }),
@@ -73,7 +78,7 @@ export type CreateDropInput = {
 };
 
 export function createDrop(body: CreateDropInput): Promise<DropResponse> {
-  return fetch("/api/drops", {
+  return fetch(dropsApiRoute, {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify(body),

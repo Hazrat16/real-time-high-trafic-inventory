@@ -1,12 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { DropResponse } from "@inventory/types";
 import {
-  completePurchase,
-  getActiveReservation,
-  reserve,
-} from "../api.ts";
+  invalidateInventoryQueries,
+  useActiveReservationQuery,
+  usePurchaseMutation,
+  useReserveMutation,
+} from "../inventory.queries.ts";
 
 function formatMoney(price: string) {
   return new Intl.NumberFormat(undefined, {
@@ -29,8 +30,8 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
 
   const secs = Math.ceil(left / 1000);
   return (
-    <span className="tabular-nums text-amber-400">
-      {secs}s left to checkout
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-xs font-medium tabular-nums text-amber-300">
+      Hold expires in {secs}s
     </span>
   );
 }
@@ -44,31 +45,22 @@ export function DropCard({
 }) {
   const qc = useQueryClient();
 
-  const { data: active } = useQuery({
-    queryKey: ["activeRes", drop.id, userId],
-    queryFn: () => getActiveReservation(userId!, drop.id),
-    enabled: Boolean(userId),
-    refetchInterval: 2000,
-  });
+  const { data: active } = useActiveReservationQuery(userId, drop.id);
 
-  const reserveMut = useMutation({
-    mutationFn: () => reserve(userId!, drop.id),
+  const reserveMut = useReserveMutation(userId, drop.id, {
     onSuccess: () => {
       toast.success("Reserved — complete checkout within 60s");
-      void qc.invalidateQueries({ queryKey: ["drops"] });
-      void qc.invalidateQueries({ queryKey: ["activeRes", drop.id] });
+      invalidateInventoryQueries(qc);
     },
     onError: (e: Error & { code?: string; status?: number }) => {
       toast.error(e.message ?? "Could not reserve");
     },
   });
 
-  const purchaseMut = useMutation({
-    mutationFn: () => completePurchase(userId!, active!.id),
+  const purchaseMut = usePurchaseMutation(userId, {
     onSuccess: () => {
       toast.success("Purchase complete");
-      void qc.invalidateQueries({ queryKey: ["drops"] });
-      void qc.invalidateQueries({ queryKey: ["activeRes", drop.id] });
+      invalidateInventoryQueries(qc);
     },
     onError: (e: Error & { code?: string; status?: number }) => {
       toast.error(e.message ?? "Purchase failed");
@@ -80,23 +72,37 @@ export function DropCard({
       drop.totalUnits - drop.availableQuantity - drop.reservedQuantity,
     [drop],
   );
+  const isSoldOut = soldApprox >= drop.totalUnits;
+  const isOutOfStock = !isSoldOut && drop.availableQuantity < 1;
 
   const canInteract = Boolean(userId);
   const holding = active?.status === "ACTIVE";
+  const isLowStock =
+    !isSoldOut && !isOutOfStock && drop.availableQuantity > 0 && drop.availableQuantity <= 3;
+  const stockToneClass =
+    isSoldOut
+      ? "text-rose-400"
+      : isOutOfStock
+        ? "text-orange-300"
+        : isLowStock
+        ? "text-amber-300"
+        : "text-emerald-300";
 
   return (
-    <article className="flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg shadow-black/20">
-      <header className="flex flex-wrap items-start justify-between gap-2">
+    <article className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5 shadow-lg shadow-black/20 backdrop-blur-sm">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">{drop.name}</h2>
-          <p className="text-emerald-400">{formatMoney(drop.price)}</p>
+          <h2 className="text-lg font-semibold leading-tight text-white">
+            {drop.name}
+          </h2>
+          <p className="mt-1 text-emerald-400">{formatMoney(drop.price)}</p>
         </div>
-        <div className="text-right">
-          <p className="text-xs uppercase tracking-wide text-slate-500">
+        <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-right">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">
             Available now
           </p>
           <p
-            className="text-4xl font-bold tabular-nums text-white"
+            className={`text-4xl font-bold tabular-nums ${stockToneClass}`}
             title="Updates live via WebSockets"
           >
             {drop.availableQuantity}
@@ -107,7 +113,32 @@ export function DropCard({
         </div>
       </header>
 
-      <section className="rounded-lg bg-slate-950/80 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {isSoldOut ? (
+          <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 font-medium text-rose-300">
+            Sold out
+          </span>
+        ) : isOutOfStock ? (
+          <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 font-medium text-orange-300">
+            Out of stock
+          </span>
+        ) : isLowStock ? (
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-medium text-amber-300">
+            Low stock
+          </span>
+        ) : (
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-300">
+            In stock
+          </span>
+        )}
+        {holding && (
+          <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 font-medium text-violet-300">
+            You have an active hold
+          </span>
+        )}
+      </div>
+
+      <section className="rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2.5">
         <p className="text-xs font-medium uppercase text-slate-500">
           Recent buyers
         </p>
@@ -130,17 +161,17 @@ export function DropCard({
 
       <footer className="flex flex-col gap-2 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
         {!canInteract ? (
-          <p className="text-sm text-amber-500/90">
+          <p className="text-sm text-amber-400/90">
             Pick a demo user to reserve or buy.
           </p>
         ) : holding ? (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full">
             <Countdown expiresAt={active!.expiresAt} />
             <button
               type="button"
               disabled={purchaseMut.isPending}
-              onClick={() => purchaseMut.mutate()}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => purchaseMut.mutate(active!.id)}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {purchaseMut.isPending ? "Processing…" : "Complete purchase"}
             </button>
@@ -150,12 +181,14 @@ export function DropCard({
             type="button"
             disabled={reserveMut.isPending || drop.availableQuantity < 1}
             onClick={() => reserveMut.mutate()}
-            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {reserveMut.isPending
               ? "Reserving…"
-              : drop.availableQuantity < 1
+              : isSoldOut
                 ? "Sold out"
+                : isOutOfStock
+                  ? "Out of stock"
                 : "Reserve"}
           </button>
         )}

@@ -11,7 +11,9 @@
     "db:seed": "pnpm --filter @inventory/server exec prisma db seed",
     "db:studio": "pnpm --filter @inventory/server exec prisma studio",
     "reservation:check": "pnpm --filter @inventory/server run reservation:concurrency-check",
-    "reservation:expiry-check": "pnpm --filter @inventory/server run reservation:expiry-check"
+    "reservation:expiry-check": "pnpm --filter @inventory/server run reservation:expiry-check",
+    "reservation:purchase-check": "pnpm --filter @inventory/server run reservation:purchase-check",
+    "drop-feed:check": "pnpm --filter @inventory/server run drop-feed:check"
   },
   "devDependencies": {
     "turbo": "^2.3.3"

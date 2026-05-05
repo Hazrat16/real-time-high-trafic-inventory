@@ -25,7 +25,10 @@ export function getExpirySweepStats(): ExpirySweepStats {
 }
 
 export function startExpirySweep() {
+  let inFlight = false;
   const tick = async () => {
+    if (inFlight) return;
+    inFlight = true;
     try {
       const recovered = await expireStaleReservations();
       stats.runs += 1;
@@ -39,8 +42,13 @@ export function startExpirySweep() {
       stats.lastRunAt = new Date().toISOString();
       stats.lastError = err instanceof Error ? err.message : String(err);
       console.error("[expirySweep]", err);
+    } finally {
+      inFlight = false;
     }
   };
   void tick();
-  setInterval(tick, INTERVAL_MS);
+  const intervalId = setInterval(() => {
+    void tick();
+  }, INTERVAL_MS);
+  return () => clearInterval(intervalId);
 }

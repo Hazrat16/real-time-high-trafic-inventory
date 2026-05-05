@@ -34,6 +34,32 @@ export async function loadRecentPurchasers(
   }));
 }
 
+export async function buildRecentPurchasersByDrop(
+  dropIds: string[],
+): Promise<Map<string, RecentPurchaser[]>> {
+  if (dropIds.length === 0) return new Map();
+
+  const rows = await prisma.purchase.findMany({
+    where: { dropId: { in: dropIds } },
+    orderBy: [{ dropId: "asc" }, { createdAt: "desc" }],
+    include: { user: { select: { username: true } } },
+  });
+
+  const byDrop = new Map<string, RecentPurchaser[]>();
+  for (const row of rows) {
+    const list = byDrop.get(row.dropId) ?? [];
+    if (list.length < 3) {
+      list.push({
+        username: row.user.username,
+        purchasedAt: row.createdAt.toISOString(),
+      });
+      byDrop.set(row.dropId, list);
+    }
+  }
+
+  return byDrop;
+}
+
 export async function formatDropWithPurchasers(
   drop: Drop,
 ): Promise<DropResponse> {

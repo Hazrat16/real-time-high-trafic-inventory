@@ -100,3 +100,5 @@ Socket.io needs a **long-lived** HTTP server. **Vercel serverless alone is not s
 | `pnpm db:seed` | Seed demo users + sample drop |
 | `pnpm reservation:check` | Runs 100 parallel reservations against a 1-unit drop; expects exactly 1 success |
 | `pnpm reservation:expiry-check` | Forces one reservation stale and verifies stock is recovered + status becomes `EXPIRED` |
+| `pnpm reservation:purchase-check` | Verifies purchase success path + guardrails (`INVALID_STATE`, `FORBIDDEN`, `EXPIRED`) |
+| `pnpm drop-feed:check` | Verifies merch drop activity feed returns top 3 purchasers in newest-first order |

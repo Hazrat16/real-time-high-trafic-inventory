@@ -7,7 +7,7 @@ import {
   reserveItem,
   completePurchase,
 } from "./services/inventory.js";
-import { formatDropWithPurchasers } from "./format.js";
+import { buildRecentPurchasersByDrop, formatDropWithPurchasers, toDropResponse } from "./format.js";
 import { notifyDropsChanged } from "./socketHub.js";
 import { getExpirySweepStats } from "./services/expirySweep.js";
 
@@ -56,8 +56,9 @@ export function createApp() {
         orderBy: { startsAt: "desc" },
       });
 
-      const payload = await Promise.all(
-        drops.map((d) => formatDropWithPurchasers(d)),
+      const byDrop = await buildRecentPurchasersByDrop(drops.map((d) => d.id));
+      const payload = drops.map((drop) =>
+        toDropResponse(drop, byDrop.get(drop.id) ?? []),
       );
       res.json(payload);
     } catch (e) {

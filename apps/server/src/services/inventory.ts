@@ -17,7 +17,7 @@ export class InventoryError extends Error {
 
 async function lockDrop(tx: Prisma.TransactionClient, dropId: string) {
   await tx.$executeRaw(
-    Prisma.sql`SELECT id FROM "Drop" WHERE id = ${dropId}::uuid FOR UPDATE`,
+    Prisma.sql`SELECT id FROM "Drop" WHERE id = ${dropId} FOR UPDATE`,
   );
 }
 

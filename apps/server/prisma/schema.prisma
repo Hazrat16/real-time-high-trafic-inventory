@@ -41,6 +41,7 @@ model Reservation {
   id        String            @id @default(uuid())
   dropId    String
   userId    String
+  createdAt DateTime          @default(now())
   expiresAt DateTime
   status    ReservationStatus @default(ACTIVE)
   drop      Drop              @relation(fields: [dropId], references: [id])
@@ -48,6 +49,9 @@ model Reservation {
   purchase  Purchase?
 
   @@index([status, expiresAt])
+  @@index([expiresAt])
+  @@index([dropId])
+  @@index([userId])
   @@index([dropId, userId])
 }
 

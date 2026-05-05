@@ -9,7 +9,8 @@
     "db:push": "pnpm --filter @inventory/server exec prisma db push",
     "db:generate": "pnpm --filter @inventory/server exec prisma generate",
     "db:seed": "pnpm --filter @inventory/server exec prisma db seed",
-    "db:studio": "pnpm --filter @inventory/server exec prisma studio"
+    "db:studio": "pnpm --filter @inventory/server exec prisma studio",
+    "reservation:check": "pnpm --filter @inventory/server run reservation:concurrency-check"
   },
   "devDependencies": {
     "turbo": "^2.3.3"

@@ -31,7 +31,7 @@ export function CreateDropPanel() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-sm text-slate-400 underline decoration-slate-600 hover:text-slate-200"
+        className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-white"
       >
         Initialize new drop (API demo)
       </button>
@@ -40,7 +40,7 @@ export function CreateDropPanel() {
 
   return (
     <form
-      className="mt-6 space-y-3 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4"
+      className="space-y-3 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4"
       onSubmit={(e) => {
         e.preventDefault();
         mut.mutate();

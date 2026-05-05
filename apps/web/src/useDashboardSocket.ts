@@ -5,9 +5,17 @@ import { SOCKET_SERVER_EVENTS } from "@inventory/types";
 
 export function useDashboardSocket(queryClient: QueryClient) {
   useEffect(() => {
-    const socket: Socket = io({
+    const backendOrigin =
+      (import.meta.env.VITE_API_ORIGIN as string | undefined)?.trim() ||
+      window.location.origin;
+
+    const directSocket: Socket = io(backendOrigin, {
       path: "/socket.io",
-      transports: ["websocket", "polling"],
+      // Connect directly to backend to avoid Vite ws proxy churn.
+      // API calls still use /api proxy in dev.
+      transports: ["websocket"],
+      withCredentials: false,
+      upgrade: false,
     });
 
     const invalidate = () => {
@@ -15,11 +23,11 @@ export function useDashboardSocket(queryClient: QueryClient) {
       void queryClient.invalidateQueries({ queryKey: ["activeRes"] });
     };
 
-    socket.on(SOCKET_SERVER_EVENTS.DROPS_CHANGED, invalidate);
+    directSocket.on(SOCKET_SERVER_EVENTS.DROPS_CHANGED, invalidate);
 
     return () => {
-      socket.off(SOCKET_SERVER_EVENTS.DROPS_CHANGED, invalidate);
-      socket.disconnect();
+      directSocket.off(SOCKET_SERVER_EVENTS.DROPS_CHANGED, invalidate);
+      directSocket.disconnect();
     };
   }, [queryClient]);
 }

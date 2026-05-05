@@ -97,3 +97,4 @@ Socket.io needs a **long-lived** HTTP server. **Vercel serverless alone is not s
 | `pnpm dev` | Turbo: builds `@inventory/types`, runs server + web |
 | `pnpm db:migrate` | Prisma migrate dev (from `@inventory/server`) |
 | `pnpm db:seed` | Seed demo users + sample drop |
+| `pnpm reservation:check` | Runs 100 parallel reservations against a 1-unit drop; expects exactly 1 success |

@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { DropResponse } from "@inventory/types";
+import type { DropResponse, ReservationResponse } from "@inventory/types";
 import {
   invalidateInventoryQueries,
   useActiveReservationQuery,
@@ -44,12 +44,20 @@ export function DropCard({
   userId: string | null;
 }) {
   const qc = useQueryClient();
+  const [effectiveReservation, setEffectiveReservation] =
+    useState<ReservationResponse | null>(null);
 
   const activeReservationQ = useActiveReservationQuery(userId, drop.id);
   const active = activeReservationQ.data;
+  useEffect(() => {
+    if (activeReservationQ.data !== undefined) {
+      setEffectiveReservation(activeReservationQ.data);
+    }
+  }, [activeReservationQ.data]);
 
   const reserveMut = useReserveMutation(userId, drop.id, {
-    onSuccess: () => {
+    onSuccess: (reservation) => {
+      setEffectiveReservation(reservation);
       toast.success("Reserved — complete checkout within 60s");
       invalidateInventoryQueries(qc);
     },
@@ -60,6 +68,7 @@ export function DropCard({
 
   const purchaseMut = usePurchaseMutation(userId, {
     onSuccess: () => {
+      setEffectiveReservation(null);
       toast.success("Purchase complete");
       invalidateInventoryQueries(qc);
     },
@@ -77,9 +86,12 @@ export function DropCard({
   const isOutOfStock = !isSoldOut && drop.availableQuantity < 1;
 
   const canInteract = Boolean(userId);
-  const holding = active?.status === "ACTIVE";
+  const activeForUi = active ?? effectiveReservation;
+  const holding = activeForUi?.status === "ACTIVE";
   const resolvingReservationState =
-    canInteract && (activeReservationQ.isLoading || activeReservationQ.isFetching);
+    canInteract &&
+    (activeReservationQ.isLoading ||
+      (activeReservationQ.isFetching && activeReservationQ.data === undefined));
   const isLowStock =
     !isSoldOut && !isOutOfStock && drop.availableQuantity > 0 && drop.availableQuantity <= 3;
   const stockToneClass =
@@ -180,11 +192,11 @@ export function DropCard({
           </div>
         ) : holding ? (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full">
-            <Countdown expiresAt={active!.expiresAt} />
+            <Countdown expiresAt={activeForUi!.expiresAt} />
             <button
               type="button"
               disabled={purchaseMut.isPending}
-              onClick={() => purchaseMut.mutate(active!.id)}
+              onClick={() => purchaseMut.mutate(activeForUi!.id)}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {purchaseMut.isPending ? "Processing…" : "Complete purchase"}

@@ -6,7 +6,7 @@ Full **pnpm monorepo**: `apps/server` (Express + Prisma + Socket.io), `apps/web`
 
 - GitHub repository: `https://github.com/Hazrat16/real-time-high-trafic-inventory`
 - Demo video: `https://drive.google.com/file/d/13Gr7gjhdTJi-IVYbqWtC8Rhs-Ds6hoDt/view?usp=sharing`
-- Live frontend URL: `real-time-high-trafic-inventory-web.vercel.app`
+- Live frontend URL: `https://real-time-high-trafic-inventory-web.vercel.app/`
 - Live backend URL: `https://real-time-high-trafic-inventory-production.up.railway.app`
 
 ## Prerequisites

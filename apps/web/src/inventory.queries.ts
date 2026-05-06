@@ -104,7 +104,14 @@ export function useActiveReservationQuery(
     queryKey: inventoryKeys.activeReservation(dropId, userId),
     queryFn: () => getActiveReservation(userId!, dropId),
     enabled: Boolean(userId),
-    refetchInterval: 8_000,
+    refetchInterval: (query) => {
+      const active = query.state.data;
+      if (active && active.status === "ACTIVE") {
+        const msLeft = new Date(active.expiresAt).getTime() - Date.now();
+        return Math.max(1_000, msLeft + 250);
+      }
+      return 8_000;
+    },
     refetchIntervalInBackground: true,
   });
 }

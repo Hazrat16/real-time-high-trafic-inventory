@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { DropResponse, ReservationResponse } from "@inventory/types";
 import {
+  inventoryKeys,
   useActiveReservationQuery,
   usePurchaseMutation,
   useReserveMutation,
@@ -63,9 +65,11 @@ export function DropCard({
   drop: DropResponse;
   userId: string | null;
 }) {
+  const queryClient = useQueryClient();
   const [effectiveReservation, setEffectiveReservation] =
     useState<ReservationResponse | null>(null);
   const [effectiveUserId, setEffectiveUserId] = useState<string | null>(null);
+  const [reserveSubmittingUserId, setReserveSubmittingUserId] = useState<string | null>(null);
   const [userSwitchPending, setUserSwitchPending] = useState(false);
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
   const latestUserIdRef = useRef(userId);
@@ -85,6 +89,7 @@ export function DropCard({
       prevUserIdRef.current = userId;
       setEffectiveReservation(null);
       setEffectiveUserId(null);
+      setReserveSubmittingUserId(null);
       reserveStartedForUserIdRef.current = null;
       purchaseStartedForUserIdRef.current = null;
       setUserSwitchPending(Boolean(userId));
@@ -116,6 +121,7 @@ export function DropCard({
       toast.success("Reserved — complete checkout within 60s");
     },
     onError: (e: Error & { code?: string; status?: number }) => {
+      setReserveSubmittingUserId(null);
       toast.error(e.message ?? "Could not reserve");
     },
   });
@@ -166,8 +172,8 @@ export function DropCard({
   const showStockSkeleton = Boolean(userId) && userSwitchPending;
   const reserveSubmitting =
     Boolean(userId) &&
-    reserveMut.isPending &&
-    reserveStartedForUserIdRef.current === userId;
+    (reserveSubmittingUserId === userId ||
+      (reserveMut.isPending && reserveStartedForUserIdRef.current === userId));
   const purchaseSubmitting =
     Boolean(userId) &&
     purchaseMut.isPending &&
@@ -189,6 +195,28 @@ export function DropCard({
         : isLowStock
         ? "text-amber-300"
         : "text-emerald-300";
+
+  useEffect(() => {
+    if (holding) setReserveSubmittingUserId(null);
+  }, [holding]);
+
+  useEffect(() => {
+    if (!userId || !activeForUi || activeForUi.status !== "ACTIVE") return;
+    const msLeft = new Date(activeForUi.expiresAt).getTime() - Date.now();
+    const timeoutMs = Math.max(0, msLeft + 250);
+    const timer = setTimeout(() => {
+      void queryClient.invalidateQueries({
+        queryKey: inventoryKeys.drops,
+        refetchType: "active",
+      });
+      void queryClient.invalidateQueries({
+        queryKey: inventoryKeys.activeReservation(drop.id, userId),
+        refetchType: "active",
+      });
+    }, timeoutMs);
+
+    return () => clearTimeout(timer);
+  }, [queryClient, userId, drop.id, activeForUi]);
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5 shadow-lg shadow-black/20 backdrop-blur-sm">
@@ -306,6 +334,7 @@ export function DropCard({
             aria-busy={reserveSubmitting}
             onClick={() => {
               if (!userId) return;
+              setReserveSubmittingUserId(userId);
               reserveStartedForUserIdRef.current = userId;
               reserveMut.mutate();
             }}

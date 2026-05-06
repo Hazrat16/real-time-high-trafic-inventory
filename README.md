@@ -2,6 +2,13 @@
 
 Full **pnpm monorepo**: `apps/server` (Express + Prisma + Socket.io), `apps/web` (React + Vite), `packages/types` (shared DTOs + socket event names).
 
+## Submission Links
+
+- GitHub repository: `https://github.com/Hazrat16/real-time-high-trafic-inventory`
+- Demo video: `https://drive.google.com/file/d/13Gr7gjhdTJi-IVYbqWtC8Rhs-Ds6hoDt/view?usp=sharing`
+- Live frontend URL: `real-time-high-trafic-inventory-web.vercel.app`
+- Live backend URL: `https://real-time-high-trafic-inventory-production.up.railway.app`
+
 ## Prerequisites
 
 - Node.js 20+
@@ -19,7 +26,7 @@ Full **pnpm monorepo**: `apps/server` (Express + Prisma + Socket.io), `apps/web`
 2. **Environment**
 
    Copy `apps/server/.env.example` to `apps/server/.env`. The bundled Compose file maps Postgres to host port **5433** (to avoid clashes with a local `:5432`).
-   
+
    For web, set `apps/web/.env.development` with:
    - `VITE_API_ORIGIN=http://localhost:5000` (local)
    - or your deployed backend URL in production.
@@ -50,23 +57,6 @@ Open [http://localhost:5173](http://localhost:5173). Pick a demo user (**alice**
 
 If you deploy only frontend on Vercel, set `VITE_API_ORIGIN` in Vercel project settings to your backend domain. Otherwise calls to `/api/v1/*` on the frontend domain return 404.
 
-### Port `5000` already in use (`EADDRINUSE`)
-
-Something else is bound to **5000** (often a previous `pnpm dev` / `tsx` you forgot to stop).
-
-1. **Stop the old process** (Linux):
-
-   ```bash
-   ss -tlnp | grep ':5000 '
-   # or: lsof -i :5000
-   ```
-
-   End that PID (e.g. Ctrl+C in the old terminal, or `kill <pid>`).
-
-2. **Or use another API port**: set `PORT=5001` (or any free port) in `apps/server/.env`, then set `VITE_API_ORIGIN=http://localhost:5001` in `apps/web/.env.development` so Vite’s proxy and Socket.io still reach the server.
-
-The Vite `EPIPE` / websocket proxy errors are a side effect of the API failing to start on **5000**; they usually go away once the server listens successfully.
-
 ## Architecture — 60-second reservation expiry
 
 - Each reservation stores `expiresAt` (`now + 60s`).
@@ -84,14 +74,14 @@ Purchases lock the **same drop row** after validating ownership so expiry and ch
 
 ## API highlights
 
-| Method | Path | Notes |
-|--------|------|--------|
-| `GET` | `/api/v1/users` | Demo shoppers |
-| `GET` | `/api/v1/drops` | Active drops + nested **top 3** recent purchasers |
-| `POST` | `/api/v1/drops` | Initialize a drop (`name`, `price`, `totalUnits`, `startsAt`, optional `endsAt`) |
-| `POST` | `/api/v1/reservations` | Requires `X-User-Id`; body `{ dropId }` |
-| `GET` | `/api/v1/reservations/active?dropId=` | Current hold for user |
-| `POST` | `/api/v1/purchases` | Requires `X-User-Id`; body `{ reservationId }` |
+| Method | Path                                  | Notes                                                                            |
+| ------ | ------------------------------------- | -------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/users`                       | Demo shoppers                                                                    |
+| `GET`  | `/api/v1/drops`                       | Active drops + nested **top 3** recent purchasers                                |
+| `POST` | `/api/v1/drops`                       | Initialize a drop (`name`, `price`, `totalUnits`, `startsAt`, optional `endsAt`) |
+| `POST` | `/api/v1/reservations`                | Requires `X-User-Id`; body `{ dropId }`                                          |
+| `GET`  | `/api/v1/reservations/active?dropId=` | Current hold for user                                                            |
+| `POST` | `/api/v1/purchases`                   | Requires `X-User-Id`; body `{ reservationId }`                                   |
 
 ## Deployment note
 
@@ -99,12 +89,12 @@ Socket.io needs a **long-lived** HTTP server. **Vercel serverless alone is not s
 
 ## Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `pnpm dev` | Turbo: builds `@inventory/types`, runs server + web |
-| `pnpm db:migrate` | Prisma migrate dev (from `@inventory/server`) |
-| `pnpm db:seed` | Seed demo users + sample drop |
-| `pnpm reservation:check` | Runs 100 parallel reservations against a 1-unit drop; expects exactly 1 success |
-| `pnpm reservation:expiry-check` | Forces one reservation stale and verifies stock is recovered + status becomes `EXPIRED` |
-| `pnpm reservation:purchase-check` | Verifies purchase success path + guardrails (`INVALID_STATE`, `FORBIDDEN`, `EXPIRED`) |
-| `pnpm drop-feed:check` | Verifies merch drop activity feed returns top 3 purchasers in newest-first order |
+| Script                            | Purpose                                                                                 |
+| --------------------------------- | --------------------------------------------------------------------------------------- |
+| `pnpm dev`                        | Turbo: builds `@inventory/types`, runs server + web                                     |
+| `pnpm db:migrate`                 | Prisma migrate dev (from `@inventory/server`)                                           |
+| `pnpm db:seed`                    | Seed demo users + sample drop                                                           |
+| `pnpm reservation:check`          | Runs 100 parallel reservations against a 1-unit drop; expects exactly 1 success         |
+| `pnpm reservation:expiry-check`   | Forces one reservation stale and verifies stock is recovered + status becomes `EXPIRED` |
+| `pnpm reservation:purchase-check` | Verifies purchase success path + guardrails (`INVALID_STATE`, `FORBIDDEN`, `EXPIRED`)   |
+| `pnpm drop-feed:check`            | Verifies merch drop activity feed returns top 3 purchasers in newest-first order        |

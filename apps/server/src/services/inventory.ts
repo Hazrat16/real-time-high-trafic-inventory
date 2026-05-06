@@ -4,6 +4,11 @@ import { notifyDropsChanged } from "../socketHub.js";
 
 export const RESERVATION_TTL_MS = 60_000;
 
+const INTERACTIVE_TX = {
+  maxWait: 10_000,
+  timeout: 20_000,
+} as const;
+
 export class InventoryError extends Error {
   constructor(
     message: string,
@@ -82,7 +87,7 @@ export async function reserveItem(dropId: string, userId: string) {
     });
 
     return created;
-  });
+  }, INTERACTIVE_TX);
 
   notifyDropsChanged();
   return reservation;
@@ -142,12 +147,11 @@ export async function completePurchase(reservationId: string, userId: string) {
       where: { id: reservation.dropId },
       data: { reservedQuantity: { decrement: 1 } },
     });
-  });
+  }, INTERACTIVE_TX);
 
   notifyDropsChanged();
 }
 
-/** Recover stock from expired reservations (called by periodic sweep). */
 export async function expireStaleReservations(): Promise<number> {
   const now = new Date();
   const stale = await prisma.reservation.findMany({
@@ -183,9 +187,8 @@ export async function expireStaleReservations(): Promise<number> {
         });
 
         freed += 1;
-      });
+      }, INTERACTIVE_TX);
     } catch {
-      // concurrent completion or double sweep — skip
     }
   }
 

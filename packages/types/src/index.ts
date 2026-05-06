@@ -1,4 +1,3 @@
-/** Server → client Socket.io events */
 export const SOCKET_SERVER_EVENTS = {
   DROPS_CHANGED: "drops:changed",
 } as const;

@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
 import { DropCard } from "./components/DropCard.tsx";
+import { DropListSkeleton } from "./components/DropCardSkeleton.tsx";
 import { CreateDropPanel } from "./components/CreateDropPanel.tsx";
 import {
   UserPicker,
@@ -61,8 +62,16 @@ function Dashboard() {
         </header>
 
         {dropsQ.isLoading ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 text-slate-400">
-            Loading drops…
+          <div className="space-y-4">
+            <p className="sr-only">Loading drops</p>
+            <div
+              className="grid items-start gap-6 md:grid-cols-2"
+              role="status"
+              aria-live="polite"
+            >
+              <DropListSkeleton count={2} />
+              <CreateDropPanel />
+            </div>
           </div>
         ) : dropsQ.error ? (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-5 text-red-300">

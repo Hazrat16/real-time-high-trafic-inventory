@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  invalidateInventoryQueries,
   queryClient,
+  refetchInventoryQueries,
   useCreateDropMutation,
 } from "../inventory.queries.ts";
 
@@ -12,10 +12,10 @@ export function CreateDropPanel() {
   const [price, setPrice] = useState("220");
   const [units, setUnits] = useState(25);
   const mut = useCreateDropMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Drop created");
       setName("");
-      invalidateInventoryQueries(queryClient);
+      await refetchInventoryQueries(queryClient);
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),

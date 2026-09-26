@@ -1,16 +1,20 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
+import { CreateDropPanel } from "./components/CreateDropPanel.tsx";
 import { DropCard } from "./components/DropCard.tsx";
 import { DropListSkeleton } from "./components/DropCardSkeleton.tsx";
-import { CreateDropPanel } from "./components/CreateDropPanel.tsx";
 import {
   UserPicker,
   loadStoredUserId,
   storeUserId,
 } from "./components/UserPicker.tsx";
+import {
+  queryClient,
+  useDropsQuery,
+  useUsersQuery,
+} from "./inventory.queries.ts";
 import { useDashboardSocket } from "./useDashboardSocket.ts";
-import { queryClient, useDropsQuery, useUsersQuery } from "./inventory.queries.ts";
 
 function Dashboard() {
   useDashboardSocket(queryClient);
@@ -37,8 +41,9 @@ function Dashboard() {
                 Limited sneaker drop dashboard
               </h1>
               <p className="mt-2 max-w-3xl text-sm text-slate-400">
-                Stock syncs across tabs via Socket.io. Reservations hold
-                inventory for 60 seconds; expired holds return automatically.
+                Stock syncs in real time across tabs via Socket.io. Reservations
+                hold inventory for 60 seconds, then automatically release
+                expired holds.
               </p>
             </div>
             <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
@@ -47,17 +52,17 @@ function Dashboard() {
           </div>
 
           <div className="mt-6">
-          {usersQ.isLoading ? (
-            <p className="text-sm text-slate-500">Loading users…</p>
-          ) : usersQ.error ? (
-            <p className="text-sm text-red-400">Could not load users.</p>
-          ) : (
-            <UserPicker
-              users={usersQ.data ?? []}
-              selectedId={userId}
-              onChange={(id) => setUserId(id)}
-            />
-          )}
+            {usersQ.isLoading ? (
+              <p className="text-sm text-slate-500">Loading users…</p>
+            ) : usersQ.error ? (
+              <p className="text-sm text-red-400">Could not load users.</p>
+            ) : (
+              <UserPicker
+                users={usersQ.data ?? []}
+                selectedId={userId}
+                onChange={(id) => setUserId(id)}
+              />
+            )}
           </div>
         </header>
 

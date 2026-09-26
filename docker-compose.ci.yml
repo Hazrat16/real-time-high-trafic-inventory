@@ -1,0 +1,36 @@
+# CI integration tests: throwaway Postgres + the build image running the check scripts.
+# Usage: IMAGE_TAG=<tag> docker compose -f docker-compose.ci.yml -p inventory-ci-<n> up \
+#          --abort-on-container-exit --exit-code-from tests
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci
+      POSTGRES_DB: inventory_ci
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ci -d inventory_ci"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  tests:
+    image: inventory-build:${IMAGE_TAG:-latest}
+    working_dir: /app/apps/server
+    environment:
+      DATABASE_URL: postgresql://ci:ci@postgres:5432/inventory_ci?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - sh
+      - -ec
+      - |
+        node_modules/.bin/prisma migrate deploy
+        pnpm run reservation:concurrency-check
+        pnpm run reservation:expiry-check
+        pnpm run reservation:purchase-check
+        pnpm run drop-feed:check
+        echo "All integration checks passed."

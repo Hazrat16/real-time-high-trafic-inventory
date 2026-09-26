@@ -87,6 +87,10 @@ Purchases lock the **same drop row** after validating ownership so expiry and ch
 
 Socket.io needs a **long-lived** HTTP server. **Vercel serverless alone is not suitable** for this Socket.io process; typical patterns are static frontend on Vercel + API/socket on Railway/Render/Fly, or one VPS running both.
 
+## CI/CD (Jenkins + AWS EC2)
+
+`Jenkinsfile` builds Docker images, runs the reservation/feed checks against a throwaway Postgres, and on `main` deploys Postgres + API + nginx-served web with `docker-compose.prod.yml`. Step-by-step setup: [docs/CICD_JENKINS_EC2.md](docs/CICD_JENKINS_EC2.md).
+
 ## Scripts
 
 | Script                            | Purpose                                                                                 |

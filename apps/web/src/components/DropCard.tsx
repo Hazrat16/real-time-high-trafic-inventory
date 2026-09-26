@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { DropResponse, ReservationResponse } from "@inventory/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   inventoryKeys,
   useActiveReservationQuery,
@@ -69,7 +69,9 @@ export function DropCard({
   const [effectiveReservation, setEffectiveReservation] =
     useState<ReservationResponse | null>(null);
   const [effectiveUserId, setEffectiveUserId] = useState<string | null>(null);
-  const [reserveSubmittingUserId, setReserveSubmittingUserId] = useState<string | null>(null);
+  const [reserveSubmittingUserId, setReserveSubmittingUserId] = useState<
+    string | null
+  >(null);
   const [userSwitchPending, setUserSwitchPending] = useState(false);
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
   const latestUserIdRef = useRef(userId);
@@ -98,10 +100,18 @@ export function DropCard({
 
   useEffect(() => {
     if (!userId || !userSwitchPending) return;
-    if (activeReservationQ.fetchStatus === "idle" && !activeReservationQ.isPending) {
+    if (
+      activeReservationQ.fetchStatus === "idle" &&
+      !activeReservationQ.isPending
+    ) {
       setUserSwitchPending(false);
     }
-  }, [userId, userSwitchPending, activeReservationQ.fetchStatus, activeReservationQ.isPending]);
+  }, [
+    userId,
+    userSwitchPending,
+    activeReservationQ.fetchStatus,
+    activeReservationQ.isPending,
+  ]);
 
   useEffect(() => {
     if (userId == null) return;
@@ -141,8 +151,7 @@ export function DropCard({
   });
 
   const soldApprox = useMemo(
-    () =>
-      drop.totalUnits - drop.availableQuantity - drop.reservedQuantity,
+    () => drop.totalUnits - drop.availableQuantity - drop.reservedQuantity,
     [drop],
   );
   const isSoldOut = soldApprox >= drop.totalUnits;
@@ -186,13 +195,15 @@ export function DropCard({
       activeReservationQ.isLoading ||
       (activeReservationQ.isFetching && activeReservationQ.data === undefined));
   const isLowStock =
-    !isSoldOut && !isOutOfStock && drop.availableQuantity > 0 && drop.availableQuantity <= 3;
-  const stockToneClass =
-    isSoldOut
-      ? "text-rose-400"
-      : isOutOfStock
-        ? "text-orange-300"
-        : isLowStock
+    !isSoldOut &&
+    !isOutOfStock &&
+    drop.availableQuantity > 0 &&
+    drop.availableQuantity <= 3;
+  const stockToneClass = isSoldOut
+    ? "text-rose-400"
+    : isOutOfStock
+      ? "text-orange-300"
+      : isLowStock
         ? "text-amber-300"
         : "text-emerald-300";
 
@@ -283,7 +294,10 @@ export function DropCard({
         ) : (
           <ol className="mt-1 space-y-1">
             {drop.recentPurchasers.map((p, i) => (
-              <li key={`${p.username}-${p.purchasedAt}-${i}`} className="text-sm">
+              <li
+                key={`${p.username}-${p.purchasedAt}-${i}`}
+                className="text-sm"
+              >
                 <span className="font-medium text-slate-200">{p.username}</span>
                 <span className="text-slate-500">
                   {" "}
@@ -302,7 +316,9 @@ export function DropCard({
           </p>
         ) : resolvingReservationState ? (
           <div className="flex w-full items-center justify-between">
-            <p className="text-sm text-slate-400">Checking reservation status…</p>
+            <p className="text-sm text-slate-400">
+              Checking reservation status…
+            </p>
             <button
               type="button"
               disabled

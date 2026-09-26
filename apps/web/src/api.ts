@@ -7,7 +7,9 @@ import type {
 const jsonHeaders = { "Content-Type": "application/json" };
 
 function resolveApiBase(): string {
-  const fromEnv = (import.meta.env.VITE_API_ORIGIN as string | undefined)?.trim();
+  const fromEnv = (
+    import.meta.env.VITE_API_ORIGIN as string | undefined
+  )?.trim();
   if (fromEnv) {
     return `${fromEnv.replace(/\/$/, "")}/api/v1`;
   }
